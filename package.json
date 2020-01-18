@@ -1,0 +1,37 @@
+{
+  "name": "heic-cli",
+  "version": "1.0.0",
+  "description": "Convert HEIC/HEIF images to JPEG and PNG from the command line",
+  "bin": {
+    "heic-cli": "bin.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catdad-experiments/heic-cli.git"
+  },
+  "keywords": [
+    "heic",
+    "heif",
+    "convert",
+    "cli",
+    "image",
+    "jpeg",
+    "png"
+  ],
+  "author": "Kiril Vatev <vatev.1@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/catdad-experiments/heic-cli/issues"
+  },
+  "homepage": "https://github.com/catdad-experiments/heic-cli#readme",
+  "dependencies": {
+    "heic-convert": "^1.0.0",
+    "yargs": "^15.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0"
+  }
+}
