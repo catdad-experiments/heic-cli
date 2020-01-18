@@ -11,6 +11,13 @@ const argv = require('yargs')
         required: false
       });
   })
+  .coerce('format', val => {
+    if (val.toLowerCase() === 'jpeg') {
+      return 'jpg';
+    }
+
+    return val.toLowerCase();
+  })
   .option('format', {
     alias: 'f',
     describe: 'the output format',
