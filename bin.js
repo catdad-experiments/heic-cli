@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 const argv = require('yargs')
-  .usage('heic-cli [options] input [output]')
+  .command('$0 <input> [output]', '', yargs => {
+    yargs
+      .positional('input', {
+        describe: 'the input file to convert',
+        required: true
+      })
+      .positional('output', {
+        describe: 'the output file to create',
+        required: false
+      });
+  })
   .option('format', {
     alias: 'f',
     describe: 'the output format',
@@ -15,16 +25,16 @@ const fs = require('fs');
 const path = require('path');
 const convert = require('heic-convert');
 
-const [input, output] = argv._;
+const { input, output, format } = argv;
 
-const format = {
+const FORMAT = {
   png: 'PNG',
   jpg: 'JPEG'
 };
 
 (async () => {
   const buffer = await promisify(fs.readFile)(path.resolve('.', input));
-  const result = await convert({ buffer, format: format[argv.format], quality: 1 });
+  const result = await convert({ buffer, format: FORMAT[format], quality: 1 });
 
   if (output) {
     await promisify(fs.writeFile)(path.resolve('.', output), result);
