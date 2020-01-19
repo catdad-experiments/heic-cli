@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 const argv = require('yargs')
-  .coerce('format', val => {
-    if (val.toLowerCase() === 'jpeg') {
-      return 'jpg';
-    }
-
-    return val.toLowerCase();
-  })
   .option('format', {
     alias: 'f',
     describe: 'the output format',
     choices: ['jpg', 'png'],
-    default: 'jpg'
+    default: 'jpg',
+    coerce: val => {
+      if (val.toLowerCase() === 'jpeg') {
+        return 'jpg';
+      }
+
+      return val.toLowerCase();
+    }
   })
   .option('input', {
     alias: 'i',
