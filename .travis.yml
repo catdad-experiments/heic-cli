@@ -1,12 +1,43 @@
 language: node_js
 
-os: linux
+env:
+  global:
+    - FORCE_COLOR=1
 
-node_js:
-  - node
-  - '12'
-  - '10'
-  - '8'
+install:
+  - npm install
 
 script:
   - npm test
+
+jobs:
+  include:
+    - stage: test
+      os: linux
+      node_js: '12'
+    - stage: test
+      os: osx
+      node_js: '10'
+    - stage: test
+      os: windows
+      node_js: '8'
+    - stage: test
+      os: osx
+      node_js: node
+    - stage: test
+      os: linux
+      node_js: '10'
+    - stage: npm release
+      if: tag IS present
+      os: linux
+      node_js: '12'
+      install: skip
+      script: echo "Deploying to npm ..."
+      deploy:
+        provider: npm
+        email: vatev.1+npm@gmail.com
+        api_key:
+          secure: mOVYh5ZF5leS7XHJnJc7k4Yj6AHq/xCwjF6vJg5JidkoASypSD0hnpdZzqVVYt7IrWkmCd0OC0Y2qvN+0AuENB7sGQdfU+chsBARCdebG4SRDZi5758HFR66iECH6AJSXhJOKgFD5uYKVsL73EiIIuOqdQSUcYSTD+iXHqU4dzuU7QXrx/oQDKfb2XYPWwf6sMuIv1ZjseijcVZ+mOXrdnBD95W5rz1SnUosK9OaF1ZPRDlozhL7nSf/mDQr/VOkEkM24AZuqwDsQGn6FGlEtY7/jajqP9zfJJey92eNo4bxFBjAyFP4vS+BWwZc2orgg9mn45zHnvctvu1qe4p03SUzH3EbQUbSkpjiTvA4sXjGxGKloKjHzw3DzAkkXu2dfULAGuxpkE5AMgin0wyytZ2eHf7e1wPO8MOayrVyMKL/9z1ahAAWXH/mwxT6vkctK2sKYVEtFXPfERvmGCfR8+oLRwQfOkHbv7Q1WwZ+v56cmBK7NamK8UGVEqtltKY5+TYTo2cQYJPEmRA5hhKOE9vb6PTeyR20ee+jREwAPVb45siRtmP3Cl13lngX9MLxLi5yNbh0u/Gkx+UeOpt22qMzszssby0W4wcVDTf0g4Vs216PDhEbpaAenwDT7PmbGCJouXZK48fzJbnTojqXNey7v6Eho1Rhwbl3EOdnK+0=
+        on:
+          tags: true
+          repo: catdad-experiments/heic-convert
