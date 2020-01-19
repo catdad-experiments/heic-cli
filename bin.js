@@ -1,16 +1,5 @@
 #!/usr/bin/env node
 const argv = require('yargs')
-  .command('$0 [input] [output]', '', yargs => {
-    yargs
-      .positional('input', {
-        describe: 'the input file to convert',
-        required: false
-      })
-      .positional('output', {
-        describe: 'the output file to create',
-        required: false
-      });
-  })
   .coerce('format', val => {
     if (val.toLowerCase() === 'jpeg') {
       return 'jpg';
@@ -23,6 +12,16 @@ const argv = require('yargs')
     describe: 'the output format',
     choices: ['jpg', 'png'],
     default: 'jpg'
+  })
+  .option('input', {
+    alias: 'i',
+    describe: 'the input file to convert, - for stdin',
+    default: '-'
+  })
+  .option('output', {
+    alias: 'o',
+    describe: 'the output file to create, - for stdout',
+    default: '-'
   })
   .help()
   .argv;
@@ -40,13 +39,13 @@ const FORMAT = {
 };
 
 (async () => {
-  const buffer = await promisify(fs.readFile)(input ? path.resolve('.', input) : process.stdin.fd);
+  const buffer = await promisify(fs.readFile)(input === '-' ? process.stdin.fd : path.resolve('.', input));
   const result = await convert({ buffer, format: FORMAT[format], quality: 1 });
 
-  if (output) {
-    await promisify(fs.writeFile)(path.resolve('.', output), result);
-  } else {
+  if (output === '-') {
     process.stdout.write(result);
+  } else {
+    await promisify(fs.writeFile)(path.resolve('.', output), result);
   }
 })().catch(err => {
   // eslint-disable-next-line no-console
