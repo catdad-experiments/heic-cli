@@ -24,7 +24,7 @@ const images = [{
     const res = await fetch(url);
 
     if (!res.ok) {
-      throw new Error(`failed to download ${name} at ${url}`);
+      throw new Error(`failed to download ${name} at ${url} with ${res.status} ${res.statusText}`);
     }
 
     const buffer = await res.buffer();
