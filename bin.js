@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 const argv = require('yargs')
-  .command('$0 <input> [output]', '', yargs => {
+  .command('$0 [input] [output]', '', yargs => {
     yargs
       .positional('input', {
         describe: 'the input file to convert',
-        required: true
+        required: false
       })
       .positional('output', {
         describe: 'the output file to create',
@@ -40,7 +40,7 @@ const FORMAT = {
 };
 
 (async () => {
-  const buffer = await promisify(fs.readFile)(path.resolve('.', input));
+  const buffer = await promisify(fs.readFile)(input ? path.resolve('.', input) : process.stdin.fd);
   const result = await convert({ buffer, format: FORMAT[format], quality: 1 });
 
   if (output) {
