@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 const path = require('path');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 
 const fs = require('fs-extra');
 const root = require('rootrequire');
@@ -124,8 +124,28 @@ describe('heic-convert', () => {
     it('converts known image to jpeg', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
 
-      const { stdout, stderr } = await shellton([], {
-        stdin: fs.createReadStream(infile)
+      const { stdout, stderr } = await new Promise((resolve) => {
+        const proc = spawn(process.execPath, ['bin'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: root,
+          windowsHide: true
+        });
+
+        const stdout = [];
+        const stderr = [];
+
+        proc.stdout.on('data', chunk => stdout.push(chunk));
+        proc.stderr.on('data', chunk => stderr.push(chunk));
+
+        fs.createReadStream(infile).pipe(proc.stdin);
+
+        proc.on('exit', code => {
+          resolve({
+            err: { code },
+            stdout: Buffer.concat(stdout),
+            stderr: Buffer.concat(stderr)
+          });
+        });
       });
 
       expect(stderr.toString()).to.equal('');
@@ -135,8 +155,28 @@ describe('heic-convert', () => {
     it('converts known image to png', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
 
-      const { stdout, stderr } = await shellton(['-f', 'PNG'], {
-        stdin: fs.createReadStream(infile)
+      const { stdout, stderr } = await new Promise((resolve) => {
+        const proc = spawn(process.execPath, ['bin', '-f', 'PNG'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: root,
+          windowsHide: true
+        });
+
+        const stdout = [];
+        const stderr = [];
+
+        proc.stdout.on('data', chunk => stdout.push(chunk));
+        proc.stderr.on('data', chunk => stderr.push(chunk));
+
+        fs.createReadStream(infile).pipe(proc.stdin);
+
+        proc.on('exit', code => {
+          resolve({
+            err: { code },
+            stdout: Buffer.concat(stdout),
+            stderr: Buffer.concat(stderr)
+          });
+        });
       });
 
       expect(stderr.toString()).to.equal('');
