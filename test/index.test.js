@@ -1,13 +1,14 @@
 /* eslint-env mocha */
 const path = require('path');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 
 const fs = require('fs-extra');
 const root = require('rootrequire');
 const tempy = require('tempy');
 const { fromBuffer: filetype } = require('file-type');
 const { expect } = require('chai');
+const eos = require('end-of-stream');
 
 describe('heic-convert', () => {
   const assertImage = async (buffer, mime, hash) => {
@@ -29,23 +30,6 @@ describe('heic-convert', () => {
       });
     });
   };
-
-  const shellton = (() => {
-    const _shellton = require('shellton');
-
-    return (args, options = {}) => {
-      return new Promise((resolve) => {
-        _shellton(Object.assign({}, options, {
-          task: `"${process.execPath}" bin.js ${args.join(' ')}`,
-          cwd: root,
-          windowsHide: true,
-          encoding: 'buffer'
-        }), (err, stdout, stderr) => {
-          resolve({ err, stdout, stderr });
-        });
-      });
-    };
-  })();
 
   const files = (() => {
     const list = [];
@@ -123,24 +107,80 @@ describe('heic-convert', () => {
   describe('using stdin and stdout', () => {
     it('converts known image to jpeg', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
+      const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr } = await shellton([], {
-        stdin: fs.createReadStream(infile)
+      const { stdout, stderr, err } = await Promise.resolve().then(async () => {
+        const proc = spawn(process.execPath, ['bin'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: root,
+          windowsHide: true
+        });
+
+        const stdout = [];
+        const stderr = [];
+
+        proc.stdout.on('data', chunk => stdout.push(chunk));
+        proc.stderr.on('data', chunk => stderr.push(chunk));
+
+        proc.stdin.end(inbuffer);
+
+        const [code] = await Promise.all([
+          new Promise(resolve => proc.on('exit', code => resolve(code))),
+          new Promise(resolve => eos(proc.stdout, () => resolve())),
+          new Promise(resolve => eos(proc.stderr, () => resolve())),
+        ]);
+
+        return {
+          err: { code },
+          stdout: Buffer.concat(stdout),
+          stderr: Buffer.concat(stderr)
+        };
       });
+
+      await fs.writeFile('./result.jpg', stdout);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
+      expect(err).to.have.property('code', 0);
     });
 
     it('converts known image to png', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
+      const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr } = await shellton(['-f', 'PNG'], {
-        stdin: fs.createReadStream(infile)
+      const { stdout, stderr, err } = await Promise.resolve().then(async () => {
+        const proc = spawn(process.execPath, ['bin', '-f', 'PNG'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: root,
+          windowsHide: true
+        });
+
+        const stdout = [];
+        const stderr = [];
+
+        proc.stdout.on('data', chunk => stdout.push(chunk));
+        proc.stderr.on('data', chunk => stderr.push(chunk));
+
+        proc.stdin.end(inbuffer);
+
+        const [code] = await Promise.all([
+          new Promise(resolve => proc.on('exit', code => resolve(code))),
+          new Promise(resolve => eos(proc.stdout, () => resolve())),
+          new Promise(resolve => eos(proc.stderr, () => resolve())),
+        ]);
+
+        return {
+          err: { code },
+          stdout: Buffer.concat(stdout),
+          stderr: Buffer.concat(stderr)
+        };
       });
+
+      await fs.writeFile('./result.jpg', stdout);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
+      expect(err).to.have.property('code', 0);
     });
   });
 
