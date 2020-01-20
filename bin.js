@@ -38,8 +38,26 @@ const FORMAT = {
   jpg: 'JPEG'
 };
 
+const readStdin = () => new Promise(resolve => {
+  const result = [];
+
+  process.stdin.on('readable', () => {
+    let chunk;
+
+    while ((chunk = process.stdin.read())) {
+      result.push(chunk);
+    }
+  });
+
+  process.stdin.on('end', () => {
+    resolve(Buffer.concat(result));
+  });
+});
+
 (async () => {
-  const buffer = await promisify(fs.readFile)(input === '-' ? process.stdin.fd : path.resolve('.', input));
+  const buffer = input === '-' ?
+    await readStdin() :
+    await promisify(fs.readFile)(path.resolve('.', input));
   const result = await convert({ buffer, format: FORMAT[format], quality: 1 });
 
   if (output === '-') {
