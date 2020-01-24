@@ -137,8 +137,6 @@ describe('heic-convert', () => {
         };
       });
 
-      await fs.writeFile('./result.jpg', stdout);
-
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
       expect(err).to.have.property('code', 0);
@@ -175,8 +173,6 @@ describe('heic-convert', () => {
           stderr: Buffer.concat(stderr)
         };
       });
-
-      await fs.writeFile('./result.jpg', stdout);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
