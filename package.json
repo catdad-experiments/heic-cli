@@ -1,6 +1,6 @@
 {
   "name": "heic-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert HEIC/HEIF images to JPEG and PNG from the command line",
   "bin": {
     "heic-cli": "bin.js"
