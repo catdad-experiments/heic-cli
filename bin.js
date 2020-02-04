@@ -44,17 +44,20 @@ require('yargs')
         alias: 'i',
         describe: 'the input file to convert, - for stdin',
         default: '-'
+      })
+      .option('count', {
+        alias: 'c',
+        describe: 'print only the amount of images in the file as a number',
+        type: 'boolean',
+        default: false
       }),
-    async ({ input }) => {
+    async ({ input, count }) => {
       /* eslint-disable no-console */
       try {
         await new Promise(r => setTimeout(() => r(), 0));
         const images = await prep({ input });
-        images.forEach((image, idx) => {
-          console.log(`------ Image ${+idx + 1} ------`);
-          console.log('width ', image.width);
-          console.log('height', image.height);
-        });
+
+        console.log(count ? `${images.length}` : `images in file: ${images.length}`);
       } catch (err) {
         process.exitCode = 1;
         console.error(err);
