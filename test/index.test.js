@@ -31,6 +31,36 @@ describe('heic-convert', () => {
     });
   };
 
+  const exec2 = async (args, options = {}, input) => {
+    return await Promise.resolve().then(async () => {
+      const proc = spawn(process.execPath, ['bin'].concat(args), Object.assign({}, options, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: root,
+        windowsHide: true
+      }));
+
+      const stdout = [];
+      const stderr = [];
+
+      proc.stdout.on('data', chunk => stdout.push(chunk));
+      proc.stderr.on('data', chunk => stderr.push(chunk));
+
+      proc.stdin.end(input);
+
+      const [code] = await Promise.all([
+        new Promise(resolve => proc.on('exit', code => resolve(code))),
+        new Promise(resolve => eos(proc.stdout, () => resolve())),
+        new Promise(resolve => eos(proc.stderr, () => resolve())),
+      ]);
+
+      return {
+        err: { code },
+        stdout: Buffer.concat(stdout),
+        stderr: Buffer.concat(stderr)
+      };
+    });
+  };
+
   const files = (() => {
     const list = [];
 
@@ -109,33 +139,7 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr, err } = await Promise.resolve().then(async () => {
-        const proc = spawn(process.execPath, ['bin'], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          cwd: root,
-          windowsHide: true
-        });
-
-        const stdout = [];
-        const stderr = [];
-
-        proc.stdout.on('data', chunk => stdout.push(chunk));
-        proc.stderr.on('data', chunk => stderr.push(chunk));
-
-        proc.stdin.end(inbuffer);
-
-        const [code] = await Promise.all([
-          new Promise(resolve => proc.on('exit', code => resolve(code))),
-          new Promise(resolve => eos(proc.stdout, () => resolve())),
-          new Promise(resolve => eos(proc.stderr, () => resolve())),
-        ]);
-
-        return {
-          err: { code },
-          stdout: Buffer.concat(stdout),
-          stderr: Buffer.concat(stderr)
-        };
-      });
+      const { stdout, stderr, err } = await exec2([], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
@@ -146,33 +150,7 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr, err } = await Promise.resolve().then(async () => {
-        const proc = spawn(process.execPath, ['bin', '-f', 'PNG'], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          cwd: root,
-          windowsHide: true
-        });
-
-        const stdout = [];
-        const stderr = [];
-
-        proc.stdout.on('data', chunk => stdout.push(chunk));
-        proc.stderr.on('data', chunk => stderr.push(chunk));
-
-        proc.stdin.end(inbuffer);
-
-        const [code] = await Promise.all([
-          new Promise(resolve => proc.on('exit', code => resolve(code))),
-          new Promise(resolve => eos(proc.stdout, () => resolve())),
-          new Promise(resolve => eos(proc.stderr, () => resolve())),
-        ]);
-
-        return {
-          err: { code },
-          stdout: Buffer.concat(stdout),
-          stderr: Buffer.concat(stderr)
-        };
-      });
+      const { stdout, stderr, err } = await exec2(['-f', 'PNG'], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
