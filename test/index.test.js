@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 const path = require('path');
 const crypto = require('crypto');
-const { execFile, spawn } = require('child_process');
+const { spawn } = require('child_process');
 
 const fs = require('fs-extra');
 const root = require('rootrequire');
@@ -19,19 +19,7 @@ describe('heic-convert', () => {
     expect(actual).to.equal(hash);
   };
 
-  const exec = (args, options = {}) => {
-    return new Promise((resolve) => {
-      execFile(process.execPath, ['bin.js', ...args], Object.assign({}, options, {
-        cwd: root,
-        windowsHide: true,
-        encoding: 'buffer'
-      }), (err, stdout, stderr) => {
-        resolve({ err, stdout, stderr });
-      });
-    });
-  };
-
-  const exec2 = async (args, options = {}, input) => {
+  const exec = async (args, options = {}, input = Buffer.from('')) => {
     return await Promise.resolve().then(async () => {
       const proc = spawn(process.execPath, ['bin'].concat(args), Object.assign({}, options, {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -87,10 +75,11 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const outfile = files.get({ extension: 'jpg' });
 
-      const { stdout, stderr } = await exec(['--input', `"${infile}"`, '--output', `"${outfile}"`]);
+      const { stdout, stderr, err } = await exec(['--input', `"${infile}"`, '--output', `"${outfile}"`]);
 
       expect(stdout.toString()).to.equal('');
       expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
 
       await assertImage(await fs.readFile(outfile), 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
     });
@@ -99,10 +88,11 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const outfile = files.get({ extension: 'jpg' });
 
-      const { stdout, stderr } = await exec(['--input', `"${infile}"`, '--output', `"${outfile}"`, '--format', 'png']);
+      const { stdout, stderr, err } = await exec(['--input', `"${infile}"`, '--output', `"${outfile}"`, '--format', 'png']);
 
       expect(stdout.toString()).to.equal('');
       expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
 
       await assertImage(await fs.readFile(outfile), 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
     });
@@ -113,10 +103,11 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const outfile = files.get({ extension: 'jpg' });
 
-      const { stdout, stderr } = await exec(['-i', `"${infile}"`, '-o', `"${outfile}"`]);
+      const { stdout, stderr, err } = await exec(['-i', `"${infile}"`, '-o', `"${outfile}"`]);
 
       expect(stdout.toString()).to.equal('');
       expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
 
       await assertImage(await fs.readFile(outfile), 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
     });
@@ -125,10 +116,11 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const outfile = files.get({ extension: 'jpg' });
 
-      const { stdout, stderr } = await exec(['--input', `"${infile}"`, '--output', `"${outfile}"`, '-f', 'PNG']);
+      const { stdout, stderr, err } = await exec(['--input', `"${infile}"`, '--output', `"${outfile}"`, '-f', 'PNG']);
 
       expect(stdout.toString()).to.equal('');
       expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
 
       await assertImage(await fs.readFile(outfile), 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
     });
@@ -139,7 +131,7 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr, err } = await exec2([], {}, inbuffer);
+      const { stdout, stderr, err } = await exec([], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
@@ -150,7 +142,7 @@ describe('heic-convert', () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr, err } = await exec2(['-f', 'PNG'], {}, inbuffer);
+      const { stdout, stderr, err } = await exec(['-f', 'PNG'], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
       await assertImage(stdout, 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
@@ -191,14 +183,14 @@ describe('heic-convert', () => {
 
       expect(stdout.toString()).to.equal('images in file: 1\n');
       expect(stderr.toString()).to.equal('');
-      expect(err).to.equal(null);
+      expect(err).to.have.property('code', 0);
     });
 
     it('prints a message showing how many images are in the file provided by stdin', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const inbuffer = await fs.readFile(infile);
 
-      const { stdout, stderr, err } = await exec2(['info'], {}, inbuffer);
+      const { stdout, stderr, err } = await exec(['info'], {}, inbuffer);
 
       expect(stdout.toString()).to.equal('images in file: 1\n');
       expect(stderr.toString()).to.equal('');
@@ -212,7 +204,7 @@ describe('heic-convert', () => {
 
       expect(stdout.toString()).to.equal('1\n');
       expect(stderr.toString()).to.equal('');
-      expect(err).to.equal(null);
+      expect(err).to.have.property('code', 0);
     });
   });
 });
