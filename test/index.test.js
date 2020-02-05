@@ -182,4 +182,37 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image');
     });
   });
+
+  describe('info', () => {
+    it('prints a message showing how many images are in the file defined by --input', async () => {
+      const infile = path.resolve(root, 'temp', '0002.heic');
+
+      const { stdout, stderr, err } = await exec(['info', '--input', `"${infile}"`]);
+
+      expect(stdout.toString()).to.equal('images in file: 1\n');
+      expect(stderr.toString()).to.equal('');
+      expect(err).to.equal(null);
+    });
+
+    it('prints a message showing how many images are in the file provided by stdin', async () => {
+      const infile = path.resolve(root, 'temp', '0002.heic');
+      const inbuffer = await fs.readFile(infile);
+
+      const { stdout, stderr, err } = await exec2(['info'], {}, inbuffer);
+
+      expect(stdout.toString()).to.equal('images in file: 1\n');
+      expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
+    });
+
+    it('prints only a number showing how many images are in the file', async () => {
+      const infile = path.resolve(root, 'temp', '0002.heic');
+
+      const { stdout, stderr, err } = await exec(['info', '--input', `"${infile}"`, '--count']);
+
+      expect(stdout.toString()).to.equal('1\n');
+      expect(stderr.toString()).to.equal('');
+      expect(err).to.equal(null);
+    });
+  });
 });
