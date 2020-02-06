@@ -11,8 +11,11 @@ const images = [{
   name: '0001.jpg',
   url: drive('1Mdlwd9i4i4HuVJjEcelUj6b0OAYkQHEj')
 }, {
-  name: '0002.heic',
+  name: '0002.heic', // single image
   url: drive('1J_761fe_HWSijAthq7h_D2Zsf1_es1cT')
+}, {
+  name: '0003.heic', // multiple images
+  url: drive('1Iru2g084yZGz-eRagiqZgccRJZfGLYgS')
 }].map(img => {
   img.path = resolve(img.name);
   return img;
@@ -24,7 +27,7 @@ const images = [{
     const res = await fetch(url);
 
     if (!res.ok) {
-      throw new Error(`failed to download ${name} at ${url} with ${res.status} ${res.statusText}`);
+      throw new Error(`failed to download ${name} at ${url}`);
     }
 
     const buffer = await res.buffer();

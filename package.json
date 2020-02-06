@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/catdad-experiments/heic-cli#readme",
   "dependencies": {
-    "heic-convert": "^1.1.0",
+    "heic-convert": "^1.2.2",
     "yargs": "^15.1.0"
   },
   "devDependencies": {

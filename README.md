@@ -21,12 +21,16 @@ npx heic-cli < input.heic > result.jpg
 Full options (also printed with `npx heic-cli --help`)
 
 ```
+Commands:
+  heic-cli       convert HEIC image to JPEG or PNG                     [default]
+  heic-cli info  see minimum info about each image in the file
+
 Options:
   --version     Show version number                                    [boolean]
-  --format, -f  the output format       [choices: "jpg", "png"] [default: "jpg"]
-  --input, -i   the input file to convert, - for stdin            [default: "-"]
-  --output, -o  the output file to create, - for stdout           [default: "-"]
-  --help        Show help
+  --help        Show help                                              [boolean]
+  --format, -f  The output format       [choices: "jpg", "png"] [default: "jpg"]
+  --input, -i   The input file to convert, - for stdin            [default: "-"]
+  --output, -o  The output file to create, - for stdout           [default: "-"]
 ```
 
 ## Related
