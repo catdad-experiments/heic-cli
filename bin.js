@@ -6,7 +6,7 @@ require('yargs')
     yargs => yargs
       .option('format', {
         alias: 'f',
-        describe: 'the output format',
+        describe: 'The output format',
         choices: ['jpg', 'png'],
         default: 'jpg',
         coerce: val => {
@@ -19,12 +19,12 @@ require('yargs')
       })
       .option('input', {
         alias: 'i',
-        describe: 'the input file to convert, - for stdin',
+        describe: 'The input file to convert, - for stdin',
         default: '-'
       })
       .option('output', {
         alias: 'o',
-        describe: 'the output file to create, - for stdout',
+        describe: 'The output file to create, - for stdout',
         default: '-'
       }),
     async ({ input, output, format }) => {
@@ -42,12 +42,12 @@ require('yargs')
     (yargs) => yargs
       .option('input', {
         alias: 'i',
-        describe: 'the input file to convert, - for stdin',
+        describe: 'The input file to convert, - for stdin',
         default: '-'
       })
       .option('count', {
         alias: 'c',
-        describe: 'print only the amount of images in the file as a number',
+        describe: 'Print only the amount of images in the file as a number',
         type: 'boolean',
         default: false
       }),
