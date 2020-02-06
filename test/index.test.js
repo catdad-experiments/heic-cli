@@ -206,5 +206,15 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
     });
+
+    it('prints the correct number for a known multi-image file', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+
+      const { stdout, stderr, err } = await exec(['info', '--input', `"${infile}"`, '--count']);
+
+      expect(stdout.toString()).to.equal('3\n');
+      expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
+    });
   });
 });
