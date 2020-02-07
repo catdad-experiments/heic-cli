@@ -31,6 +31,7 @@ Options:
   --format, -f  The output format       [choices: "jpg", "png"] [default: "jpg"]
   --input, -i   The input file to convert, - for stdin            [default: "-"]
   --output, -o  The output file to create, - for stdout           [default: "-"]
+  --images, -m  Which images to decode, -1 for all        [array] [default: [0]]
 ```
 
 ## Related
