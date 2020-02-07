@@ -148,8 +148,13 @@ const outputAllImages = async ({ images, output }) => {
   }
 
   for (let image of images) {
-    // TODO calculate output based on index and some sort of template
-    await outputImage({ image, output: `${image.idx}-${output}` });
+    let name = output.replace(/%s/g, image.idx);
+
+    if (output === name) {
+      name = `${image.idx}-${output}`;
+    }
+
+    await outputImage({ image, output: name });
   }
 };
 
