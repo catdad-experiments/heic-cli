@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-require('yargs')
+const yargs = require('yargs')
   .command(
     '$0',
-    'convert HEIC image to JPEG or PNG',
+    'Convert HEIC image to JPEG or PNG',
     yargs => yargs
       .option('format', {
         alias: 'f',
@@ -66,7 +66,7 @@ require('yargs')
   )
   .command(
     'info',
-    'see minimum info about each image in the file',
+    'See minimum info about each image in the file',
     (yargs) => yargs
       .option('input', {
         alias: 'i',
@@ -80,21 +80,20 @@ require('yargs')
         default: false
       }),
     async ({ input, count }) => {
-      /* eslint-disable no-console */
       try {
         await new Promise(r => setTimeout(() => r(), 0));
         const images = await prep({ input });
 
+        // eslint-disable-next-line no-console
         console.log(count ? `${images.length}` : `images in file: ${images.length}`);
       } catch (err) {
-        process.exitCode = 1;
-        console.error(err);
+        onError(err);
       }
-      /* eslint-enable no-console */
     }
   )
-  .help()
-  .argv;
+  .help();
+
+yargs.argv;
 
 const { promisify } = require('util');
 const fs = require('fs');
@@ -159,7 +158,8 @@ const outputAllImages = async ({ images, output }) => {
 };
 
 const onError = err => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+  console.error(err); // eslint-disable-line no-console
+  console.error(''); // eslint-disable-line no-console
+  yargs.showHelp();
   process.exitCode = 1;
 };
