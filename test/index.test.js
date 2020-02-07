@@ -257,7 +257,8 @@ describe('heic-convert', () => {
       expect(err).to.have.property('code', 1);
       expect(stdout.toString()).to.equal('');
       expect(stderr.toString()).to.include('Invalid values:')
-        .and.to.include('Argument: format, Given: "pineapples", Choices: "jpg", "png"');
+        .and.to.include('Argument: format, Given: "pineapples", Choices: "jpg", "png"')
+        .and.to.include(HELP_LINE);
     });
 
     it('errors for input data that is not a heic image', async () => {
@@ -268,7 +269,8 @@ describe('heic-convert', () => {
 
       expect(err).to.have.property('code', 1);
       expect(stdout.toString()).to.equal('');
-      expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image');
+      expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image')
+        .and.to.include(HELP_LINE);
     });
   });
 
@@ -312,6 +314,18 @@ describe('heic-convert', () => {
       expect(stdout.toString()).to.equal('3\n');
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
+    });
+
+    it('errors for input data that is not a heic image', async () => {
+      const { stdout, stderr, err } = await exec(['info'], {}, Buffer.from('pineapples'));
+
+      // prints `info` help rather than default help
+      expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image')
+        .and.to.include('See minimum info about each image in the file')
+        .and.to.not.include(HELP_LINE);
+
+      expect(stdout.toString()).to.equal('');
+      expect(err).to.have.property('code', 1);
     });
   });
 });
