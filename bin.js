@@ -26,11 +26,39 @@ require('yargs')
         alias: 'o',
         describe: 'The output file to create, - for stdout',
         default: '-'
+      })
+      .option('images', {
+        alias: 'm',
+        type: 'array',
+        describe: 'Which images to decode, -1 for all',
+        default: [0]
       }),
-    async ({ input, output, format }) => {
+    async ({ input, output, format, images }) => {
+      const all = images.length === 1 && images[0] === -1;
+      const single = images.length === 1;
+
       try {
         await new Promise(r => setTimeout(() => r(), 0));
-        await outputImage({ input, output, format });
+        const results = await prep({ input, format });
+        results.forEach((img, i) => {
+          img.idx = i;
+        });
+
+        if (all) {
+          return await outputAllImages({ images: results, output });
+        }
+
+        for (let i of images) {
+          if (!results[i]) {
+            throw new RangeError(`no image at index ${i}, images in file: ${results.length}`);
+          }
+        }
+
+        if (single) {
+          return await outputImage({ image: results[images[0]], output });
+        }
+
+        return outputAllImages({ images: results.filter((r, i) => images.includes(i)), output });
       } catch (err) {
         onError(err);
       }
@@ -104,14 +132,24 @@ const prep = async ({ input, format = 'jpg' }) => {
   return results;
 };
 
-const outputImage = async ({ input, output, format }) => {
-  const [image] = await prep({ input, format });
+const outputImage = async ({ image, output }) => {
   const result = await image.convert();
 
   if (output === '-') {
     process.stdout.write(result);
   } else {
     await promisify(fs.writeFile)(path.resolve('.', output), result);
+  }
+};
+
+const outputAllImages = async ({ images, output }) => {
+  if (output === '-') {
+    throw new Error('cannot write all images to standard out, use --output to provide filename template');
+  }
+
+  for (let image of images) {
+    // TODO calculate output based on index and some sort of template
+    await outputImage({ image, output: `${image.idx}-${output}` });
   }
 };
 
