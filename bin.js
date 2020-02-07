@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-require('yargs')
+const yargs = require('yargs')
   .command(
     '$0',
-    'convert HEIC image to JPEG or PNG',
+    'Convert HEIC image to JPEG or PNG',
     yargs => yargs
       .option('format', {
         alias: 'f',
@@ -26,11 +26,39 @@ require('yargs')
         alias: 'o',
         describe: 'The output file to create, - for stdout',
         default: '-'
+      })
+      .option('images', {
+        alias: 'm',
+        type: 'array',
+        describe: 'Which images to decode, -1 for all',
+        default: [0]
       }),
-    async ({ input, output, format }) => {
+    async ({ input, output, format, images }) => {
+      const all = images.length === 1 && images[0] === -1;
+      const single = images.length === 1;
+
       try {
         await new Promise(r => setTimeout(() => r(), 0));
-        await outputImage({ input, output, format });
+        const results = await prep({ input, format });
+        results.forEach((img, i) => {
+          img.idx = i;
+        });
+
+        if (all) {
+          return await outputAllImages({ images: results, output });
+        }
+
+        for (let i of images) {
+          if (!results[i]) {
+            throw new RangeError(`no image at index ${i}, images in file: ${results.length}`);
+          }
+        }
+
+        if (single) {
+          return await outputImage({ image: results[images[0]], output });
+        }
+
+        return outputAllImages({ images: results.filter((r, i) => images.includes(i)), output });
       } catch (err) {
         onError(err);
       }
@@ -38,7 +66,7 @@ require('yargs')
   )
   .command(
     'info',
-    'see minimum info about each image in the file',
+    'See minimum info about each image in the file',
     (yargs) => yargs
       .option('input', {
         alias: 'i',
@@ -52,21 +80,20 @@ require('yargs')
         default: false
       }),
     async ({ input, count }) => {
-      /* eslint-disable no-console */
       try {
         await new Promise(r => setTimeout(() => r(), 0));
         const images = await prep({ input });
 
+        // eslint-disable-next-line no-console
         console.log(count ? `${images.length}` : `images in file: ${images.length}`);
       } catch (err) {
-        process.exitCode = 1;
-        console.error(err);
+        onError(err);
       }
-      /* eslint-enable no-console */
     }
   )
-  .help()
-  .argv;
+  .help();
+
+yargs.argv;
 
 const { promisify } = require('util');
 const fs = require('fs');
@@ -104,8 +131,7 @@ const prep = async ({ input, format = 'jpg' }) => {
   return results;
 };
 
-const outputImage = async ({ input, output, format }) => {
-  const [image] = await prep({ input, format });
+const outputImage = async ({ image, output }) => {
   const result = await image.convert();
 
   if (output === '-') {
@@ -115,8 +141,25 @@ const outputImage = async ({ input, output, format }) => {
   }
 };
 
+const outputAllImages = async ({ images, output }) => {
+  if (output === '-') {
+    throw new Error('cannot write all images to standard out, use --output to provide filename template');
+  }
+
+  for (let image of images) {
+    let name = output.replace(/%s/g, image.idx);
+
+    if (output === name) {
+      name = `${image.idx}-${output}`;
+    }
+
+    await outputImage({ image, output: name });
+  }
+};
+
 const onError = err => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+  console.error(err); // eslint-disable-line no-console
+  console.error(''); // eslint-disable-line no-console
+  yargs.showHelp();
   process.exitCode = 1;
 };

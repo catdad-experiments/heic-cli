@@ -11,6 +11,8 @@ const { expect } = require('chai');
 const eos = require('end-of-stream');
 
 describe('heic-convert', () => {
+  const HELP_LINE = 'Convert HEIC image to JPEG or PNG';
+
   const assertImage = async (buffer, mime, hash) => {
     const type = await filetype(buffer);
     expect(type.mime).to.equal(mime);
@@ -55,6 +57,11 @@ describe('heic-convert', () => {
     return {
       get: (...args) => {
         const res = tempy.file(...args);
+        list.push(res);
+        return res;
+      },
+      dir: () => {
+        const res = tempy.directory();
         list.push(res);
         return res;
       },
@@ -150,6 +157,96 @@ describe('heic-convert', () => {
     });
   });
 
+  describe('using a multi-image file', () => {
+    const hashes = [
+      { i: 0, hash: '11e8083208d6357642624a2481b8c5e376d6655e14a46be44a2ca1221986a0bc' },
+      { i: 1, hash: '1f1ef0b3b19a1c10d9659702c5d32fb380358501e20c9d6e491bbea181873286' },
+      { i: 2, hash: '1f1ef0b3b19a1c10d9659702c5d32fb380358501e20c9d6e491bbea181873286' },
+    ];
+
+    it('converts the first image by default', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+
+      const { stdout, stderr, err } = await exec(['--input', `"${infile}"`], {});
+
+      expect(stderr.toString()).to.equal('');
+      await assertImage(stdout, 'image/jpeg', hashes[0].hash);
+      expect(err).to.have.property('code', 0);
+    });
+
+    it('can convert multiple images using the --images flag', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+      const inbuffer = await fs.readFile(infile);
+      const rand = Math.random().toString(36).slice(2);
+      const outdir = files.dir();
+      const outtemp = path.resolve(outdir, `${rand}-%s-%s.jpg`);
+
+      const { stdout, stderr, err } = await exec(['--output', `"${outtemp}"`, '--images', '1', '2'], {}, inbuffer);
+
+      expect(stdout.toString()).to.equal('');
+      expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
+
+      await assertImage(await fs.readFile(path.resolve(outdir, `${rand}-1-1.jpg`)), 'image/jpeg', hashes[1].hash);
+      await assertImage(await fs.readFile(path.resolve(outdir, `${rand}-2-2.jpg`)), 'image/jpeg', hashes[2].hash);
+    });
+
+    it('can convert all images using -m -1', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+      const inbuffer = await fs.readFile(infile);
+      const rand = Math.random().toString(36).slice(2);
+      const outdir = files.dir();
+      const outtemp = path.resolve(outdir, `%s-${rand}-%s-%s.jpg`);
+
+      const { stdout, stderr, err } = await exec(['--output', `"${outtemp}"`, '-m', '-1'], {}, inbuffer);
+
+      expect(stdout.toString()).to.equal('');
+      expect(stderr.toString()).to.equal('');
+      expect(err).to.have.property('code', 0);
+
+      await assertImage(await fs.readFile(path.resolve(outdir, `0-${rand}-0-0.jpg`)), 'image/jpeg', hashes[0].hash);
+      await assertImage(await fs.readFile(path.resolve(outdir, `1-${rand}-1-1.jpg`)), 'image/jpeg', hashes[1].hash);
+      await assertImage(await fs.readFile(path.resolve(outdir, `2-${rand}-2-2.jpg`)), 'image/jpeg', hashes[2].hash);
+    });
+
+    it('can write a single non-default image to standard out', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+      const inbuffer = await fs.readFile(infile);
+
+      const { stdout, stderr, err } = await exec(['--images', '2'], {}, inbuffer);
+
+      expect(stderr.toString()).to.equal('');
+      await assertImage(stdout, 'image/jpeg', hashes[2].hash);
+      expect(err).to.have.property('code', 0);
+    });
+
+    it('errors if writing to standard out with multiple images', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+      const inbuffer = await fs.readFile(infile);
+
+      const { stdout, stderr, err } = await exec(['--images', '-1'], {}, inbuffer);
+
+      expect(stderr.toString())
+        .to.contain('cannot write all images to standard out, use --output to provide filename template')
+        .and.to.contain(HELP_LINE);
+      expect(stdout.toString()).to.equal('');
+      expect(err).to.have.property('code', 1);
+    });
+
+    it('errors if converting an image index that does not exist', async () => {
+      const infile = path.resolve(root, 'temp', '0003.heic');
+      const inbuffer = await fs.readFile(infile);
+
+      const { stdout, stderr, err } = await exec(['--images', '7'], {}, inbuffer);
+
+      expect(stderr.toString())
+        .to.contain('RangeError: no image at index 7, images in file: 3')
+        .and.to.contain(HELP_LINE);
+      expect(stdout.toString()).to.equal('');
+      expect(err).to.have.property('code', 1);
+    });
+  });
+
   describe('using invalid inputs', () => {
     it('errors for an unknown output format', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
@@ -160,7 +257,8 @@ describe('heic-convert', () => {
       expect(err).to.have.property('code', 1);
       expect(stdout.toString()).to.equal('');
       expect(stderr.toString()).to.include('Invalid values:')
-        .and.to.include('Argument: format, Given: "pineapples", Choices: "jpg", "png"');
+        .and.to.include('Argument: format, Given: "pineapples", Choices: "jpg", "png"')
+        .and.to.include(HELP_LINE);
     });
 
     it('errors for input data that is not a heic image', async () => {
@@ -171,7 +269,8 @@ describe('heic-convert', () => {
 
       expect(err).to.have.property('code', 1);
       expect(stdout.toString()).to.equal('');
-      expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image');
+      expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image')
+        .and.to.include(HELP_LINE);
     });
   });
 
@@ -215,6 +314,18 @@ describe('heic-convert', () => {
       expect(stdout.toString()).to.equal('3\n');
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
+    });
+
+    it('errors for input data that is not a heic image', async () => {
+      const { stdout, stderr, err } = await exec(['info'], {}, Buffer.from('pineapples'));
+
+      // prints `info` help rather than default help
+      expect(stderr.toString()).to.include('TypeError: input buffer is not a HEIC image')
+        .and.to.include('See minimum info about each image in the file')
+        .and.to.not.include(HELP_LINE);
+
+      expect(stdout.toString()).to.equal('');
+      expect(err).to.have.property('code', 1);
     });
   });
 });
