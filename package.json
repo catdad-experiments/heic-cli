@@ -33,13 +33,17 @@
     "yargs": "^15.1.0"
   },
   "devDependencies": {
+    "buffer-to-uint8array": "^1.1.0",
     "chai": "^4.2.0",
     "end-of-stream": "^1.4.4",
     "eslint": "^5.16.0",
     "file-type": "^13.1.1",
     "fs-extra": "^8.1.0",
+    "jpeg-js": "^0.4.1",
     "mocha": "^7.0.0",
     "node-fetch": "^2.6.0",
+    "pixelmatch": "^5.2.1",
+    "pngjs": "^5.0.0",
     "rootrequire": "^1.0.0",
     "shellton": "^5.0.0",
     "tempy": "^0.3.0"
