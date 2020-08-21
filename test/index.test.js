@@ -1,6 +1,5 @@
 /* eslint-env mocha */
 const path = require('path');
-const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 const fs = require('fs-extra');
@@ -9,16 +8,43 @@ const tempy = require('tempy');
 const { fromBuffer: filetype } = require('file-type');
 const { expect } = require('chai');
 const eos = require('end-of-stream');
+const toUint8 = require('buffer-to-uint8array');
+const pixelmatch = require('pixelmatch');
+const { PNG } = require('pngjs');
+const jpegJs = require('jpeg-js');
 
 describe('heic-convert', () => {
   const HELP_LINE = 'Convert HEIC image to JPEG or PNG';
 
-  const assertImage = async (buffer, mime, hash) => {
+  const decode = {
+    'image/png': buffer => PNG.sync.read(buffer),
+    'image/jpeg': buffer => jpegJs.decode(buffer)
+  };
+
+  const readControl = async name => {
+    const buffer = await fs.readFile(path.resolve(root, `temp/${name}`));
+    return decode['image/png'](buffer);
+  };
+
+  const compare = (expected, actual, width, height, errString = 'actual image did not match control image') => {
+    const result = pixelmatch(toUint8(Buffer.from(expected)), toUint8(Buffer.from(actual)), null, width, height, {
+      threshold: 0.1
+    });
+
+    // allow 5% of pixels to be different
+    expect(result).to.be.below(width * height * 0.05, errString);
+  };
+
+  const assertImage = async (buffer, mime, control) => {
     const type = await filetype(buffer);
     expect(type.mime).to.equal(mime);
 
-    const actual = crypto.createHash('sha256').update(buffer).digest('hex');
-    expect(actual).to.equal(hash);
+    const actual = decode[mime](buffer);
+
+    expect(actual.width).to.equal(control.width);
+    expect(actual.height).to.equal(control.height);
+
+    compare(control.data, actual.data, control.width, control.height);
   };
 
   const exec = async (args, options = {}, input = Buffer.from('')) => {
@@ -78,6 +104,12 @@ describe('heic-convert', () => {
   });
 
   describe('using --input and --output', () => {
+    let control;
+
+    before(async () => {
+      control = await readControl('0002-control.png');
+    });
+
     it('converts known image to jpeg', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const outfile = files.get({ extension: 'jpg' });
@@ -88,7 +120,7 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
 
-      await assertImage(await fs.readFile(outfile), 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
+      await assertImage(await fs.readFile(outfile), 'image/jpeg', control);
     });
 
     it('converts known image to png', async () => {
@@ -101,11 +133,17 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
 
-      await assertImage(await fs.readFile(outfile), 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
+      await assertImage(await fs.readFile(outfile), 'image/png', control);
     });
   });
 
   describe('using -i and -o', () => {
+    let control;
+
+    before(async () => {
+      control = await readControl('0002-control.png');
+    });
+
     it('converts known image to jpeg', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const outfile = files.get({ extension: 'jpg' });
@@ -116,7 +154,7 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
 
-      await assertImage(await fs.readFile(outfile), 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
+      await assertImage(await fs.readFile(outfile), 'image/jpeg', control);
     });
 
     it('converts known image to png', async () => {
@@ -129,11 +167,17 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
 
-      await assertImage(await fs.readFile(outfile), 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
+      await assertImage(await fs.readFile(outfile), 'image/png', control);
     });
   });
 
   describe('using stdin and stdout', () => {
+    let control;
+
+    before(async () => {
+      control = await readControl('0002-control.png');
+    });
+
     it('converts known image to jpeg', async () => {
       const infile = path.resolve(root, 'temp', '0002.heic');
       const inbuffer = await fs.readFile(infile);
@@ -141,7 +185,7 @@ describe('heic-convert', () => {
       const { stdout, stderr, err } = await exec([], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
-      await assertImage(stdout, 'image/jpeg', 'f7f1ae16c3fbf035d1b71b1995230305125236d0c9f0513c905ab1cb39fc68e9');
+      await assertImage(stdout, 'image/jpeg', control);
       expect(err).to.have.property('code', 0);
     });
 
@@ -152,17 +196,20 @@ describe('heic-convert', () => {
       const { stdout, stderr, err } = await exec(['-f', 'PNG'], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
-      await assertImage(stdout, 'image/png', '0efc9a4c58d053fb42591acd83f8a5005ee2844555af29b5aba77a766b317935');
+      await assertImage(stdout, 'image/png', control);
       expect(err).to.have.property('code', 0);
     });
   });
 
   describe('using a multi-image file', () => {
-    const hashes = [
-      { i: 0, hash: '11e8083208d6357642624a2481b8c5e376d6655e14a46be44a2ca1221986a0bc' },
-      { i: 1, hash: '1f1ef0b3b19a1c10d9659702c5d32fb380358501e20c9d6e491bbea181873286' },
-      { i: 2, hash: '1f1ef0b3b19a1c10d9659702c5d32fb380358501e20c9d6e491bbea181873286' },
-    ];
+    let controls;
+
+    before(async () => {
+      controls = await Promise.all([
+        readControl('0003-0-control.png'),
+        readControl('0003-1-control.png'),
+      ]);
+    });
 
     it('converts the first image by default', async () => {
       const infile = path.resolve(root, 'temp', '0003.heic');
@@ -170,7 +217,7 @@ describe('heic-convert', () => {
       const { stdout, stderr, err } = await exec(['--input', `"${infile}"`], {});
 
       expect(stderr.toString()).to.equal('');
-      await assertImage(stdout, 'image/jpeg', hashes[0].hash);
+      await assertImage(stdout, 'image/jpeg', controls[0]);
       expect(err).to.have.property('code', 0);
     });
 
@@ -187,8 +234,8 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
 
-      await assertImage(await fs.readFile(path.resolve(outdir, `${rand}-1-1.jpg`)), 'image/jpeg', hashes[1].hash);
-      await assertImage(await fs.readFile(path.resolve(outdir, `${rand}-2-2.jpg`)), 'image/jpeg', hashes[2].hash);
+      await assertImage(await fs.readFile(path.resolve(outdir, `${rand}-1-1.jpg`)), 'image/jpeg', controls[1]);
+      await assertImage(await fs.readFile(path.resolve(outdir, `${rand}-2-2.jpg`)), 'image/jpeg', controls[1]);
     });
 
     it('can convert all images using -m -1', async () => {
@@ -204,9 +251,9 @@ describe('heic-convert', () => {
       expect(stderr.toString()).to.equal('');
       expect(err).to.have.property('code', 0);
 
-      await assertImage(await fs.readFile(path.resolve(outdir, `0-${rand}-0-0.jpg`)), 'image/jpeg', hashes[0].hash);
-      await assertImage(await fs.readFile(path.resolve(outdir, `1-${rand}-1-1.jpg`)), 'image/jpeg', hashes[1].hash);
-      await assertImage(await fs.readFile(path.resolve(outdir, `2-${rand}-2-2.jpg`)), 'image/jpeg', hashes[2].hash);
+      await assertImage(await fs.readFile(path.resolve(outdir, `0-${rand}-0-0.jpg`)), 'image/jpeg', controls[0]);
+      await assertImage(await fs.readFile(path.resolve(outdir, `1-${rand}-1-1.jpg`)), 'image/jpeg', controls[1]);
+      await assertImage(await fs.readFile(path.resolve(outdir, `2-${rand}-2-2.jpg`)), 'image/jpeg', controls[1]);
     });
 
     it('can write a single non-default image to standard out', async () => {
@@ -216,7 +263,7 @@ describe('heic-convert', () => {
       const { stdout, stderr, err } = await exec(['--images', '2'], {}, inbuffer);
 
       expect(stderr.toString()).to.equal('');
-      await assertImage(stdout, 'image/jpeg', hashes[2].hash);
+      await assertImage(stdout, 'image/jpeg', controls[1]);
       expect(err).to.have.property('code', 0);
     });
 
