@@ -36,6 +36,7 @@ Options:
 
 ## Related
 
+* [heic-app](https://github.com/catdad-experiments/heic-app) - web application to convert heic/heif images to jpeg using a GUI
 * [heic-convert](https://github.com/catdad-experiments/heic-convert) - convert heic/heif images to jpeg and png
-* [heic-decode](https://github.com/catdad-experiments/heic-decode) - decode heic images to raw image data
+* [heic-decode](https://github.com/catdad-experiments/heic-decode) - decode heic/heif images to raw image data
 * [libheif-js](https://github.com/catdad-experiments/libheif-js) - libheif as a pure-javascript npm module
