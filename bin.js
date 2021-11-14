@@ -27,19 +27,34 @@ const yargs = require('yargs')
         describe: 'The output file to create, - for stdout',
         default: '-'
       })
+      .option('quality', {
+        alias: 'q',
+        describe: 'The jpeg compression quality, between 0 and 1',
+        default: '1',
+        type: 'number'
+      })
       .option('images', {
         alias: 'm',
         type: 'array',
         describe: 'Which images to decode, -1 for all',
         default: [0]
+      })
+      .check((args) => {
+        if (args.quality != null) {
+          if (args.quality <= 0 || args.quality > 1) {
+            throw 'quality must be a number between 0 and 1';
+          }
+        }
+
+        return true;
       }),
-    async ({ input, output, format, images }) => {
+    async ({ input, output, format, images, quality }) => {
       const all = images.length === 1 && images[0] === -1;
       const single = images.length === 1;
 
       try {
         await new Promise(r => setTimeout(() => r(), 0));
-        const results = await prep({ input, format });
+        const results = await prep({ input, format, quality });
         results.forEach((img, i) => {
           img.idx = i;
         });
@@ -121,12 +136,12 @@ const readStdin = () => new Promise(resolve => {
   });
 });
 
-const prep = async ({ input, format = 'jpg' }) => {
+const prep = async ({ input, format = 'jpg', quality = 1 }) => {
   const buffer = input === '-' ?
     await readStdin() :
     await promisify(fs.readFile)(path.resolve('.', input));
 
-  const results = await convert.all({ buffer, format: FORMAT[format], quality: 1 });
+  const results = await convert.all({ buffer, format: FORMAT[format], quality: quality });
 
   return results;
 };
