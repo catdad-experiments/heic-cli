@@ -10,16 +10,24 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    name: test with node ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [12, 14, 16, 18, 20]
+        node: [18, 20]
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        include:
+          - os: macos-latest
+            node: 16
+          - os: windows-latest
+            node: 14
+          - os: ubuntu-latest
+            node: 12
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm test
       - name: Inspect tarball
